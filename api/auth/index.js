@@ -27,7 +27,7 @@ var obj = (function(){
                 return Promise.resolve(variable);
             }
             
-            return Promise.promisify(fs.readFile)("E:\\Work\\SEDC\\CGExport\\CGExport_NEW\\CGExport\\bin\\Debug\\codelist.xml","utf8");
+            return Promise.promisify(fs.readFile)(__dirname + "/../../public/demo.txt", "utf8");
         },
         set: function(v){
             return Promise.resolve(variable = v);
