@@ -15,6 +15,9 @@ api
 	|--zzz
 ~~~
 
+## 查看注册报告
+通过地址 *http://xxx.xxx.xxx/info* 可以查看到注册接口的报告
+
 ## 关键依赖部分
 * express
 * co

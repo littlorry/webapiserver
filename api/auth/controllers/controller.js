@@ -4,7 +4,7 @@ var service = require('../services/service');
 module.exports = {
     join:{
         'name':'signup',
-        'description': '',
+        'description': '111',
         'version': '',
         'method': 'get',
         'actions':[

@@ -16,14 +16,18 @@ module.exports = {
             "router": router,
             "controller": config
             };
+
+        var info= {"module":mod, "actions":[]};
         
+        
+
         var api = new API(mod);
 
         var controllers = config.controllers || [];
         for(var i=0; i<controllers.length; i++) {
             var ctr = controllers[i] || {};
             for(var key in ctr){
-                var action = {'name': key, 'method': 'get', 'actions':[]};
+                var action = {'name': key, 'method': 'get', 'description':ctr[key].description,'actions':[]};
                 if(typeof(ctr[key]) == "function"){
                     action.actions.push(ctr[key]);
                 }
@@ -36,11 +40,13 @@ module.exports = {
                     continue;
                 }
 
+                info.actions.push(action);
                 api.registAction(action);
             } 
             
         }
 
+        router["info"] = info;
         return mod;
     }
 };
@@ -58,6 +64,7 @@ function API(mod)
         if(actions.length == 0) return;
 
 
+
         var url = "/" + name;
         if(method == "get"){
             router.get(url, (req, res)=>{CallAction(action, req, res);});
@@ -68,6 +75,8 @@ function API(mod)
         else{
             //do nothing
         }
+
+
     }
 
     //这里统一处理程序
@@ -105,7 +114,7 @@ function API(mod)
             if(typeof(event) == "function"){
                 yield event.apply(context);
             }
-            
+
         }).then(()=>{
             var _this = arguments[0];
             res.status(200).json({
