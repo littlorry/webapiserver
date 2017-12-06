@@ -1,12 +1,10 @@
 'use strict';
 
-var express = require('express');
 var co = require('co');
-
 var log = require('./log');
 
 module.exports = {
-    Load: function(name, path){
+    Load: function(router, name, path){
         var config =  require(path);
 
         name = config.name || name;
@@ -15,11 +13,11 @@ module.exports = {
             "name": name, 
             "description": config.description,
             "version": config.version,
-            "router": express.Router(),
+            "router": router,
             "controller": config
             };
         
-        var controller = new Controller(mod);
+        var api = new API(mod);
 
         var controllers = config.controllers || [];
         for(var i=0; i<controllers.length; i++) {
@@ -30,7 +28,6 @@ module.exports = {
                     action.actions.push(ctr[key]);
                 }
                 else if(typeof(ctr[key]) == "object"){
-
                     action.name = ctr[key].name || action.name;
                     action.method = ctr[key].method || action.method;
                     action.actions = ctr[key].actions || action.actions;
@@ -39,7 +36,7 @@ module.exports = {
                     continue;
                 }
 
-                controller.registAction(action);
+                api.registAction(action);
             } 
             
         }
@@ -48,42 +45,38 @@ module.exports = {
     }
 };
 
-function Controller(mod)
+function API(mod)
 {
     var router = mod.router;
 
     //支持AOP[插件before, after]
     this.registAction = function(action){
         var name = action.name;
-        var method = action.method;
+        var method = action.method || "get";
         var actions = action.actions;
-        if(actions.length == 0){
-            console.log('\t',name, method, "无任何处理,注册失败");
-            return;
-        }
+        if(name.length == 0) return;
+        if(actions.length == 0) return;
 
+
+        var url = "/" + name;
         if(method == "get"){
-            router.get("/" + name, (req, res)=>{CallAction(action, req, res);});
+            router.get(url, (req, res)=>{CallAction(action, req, res);});
         }
         else if(method == "post"){
-            router.post("/" + name, (req, res)=>{CallAction(action, req, res);});
+            router.post(url, (req, res)=>{CallAction(action, req, res);});
         }
         else{
-            console.log('\t',name, method, "无效的方法，注册失败");
-            return;
+            //do nothing
         }
-
-        console.log('\t',name, method, "注册成功");
     }
 
+    //这里统一处理程序
     function CallAction(action, req, res){
         //这里使用CO来控制同步操作
         co(function *(){
             var name = action.name;
             var method = action.method;
             var actions = action.actions;
-
-            log.request.info(mod.name + "." + name + " [" + method + "]");
 
             var events = mod.controller.events || {};
 
@@ -112,8 +105,7 @@ function Controller(mod)
             if(typeof(event) == "function"){
                 yield event.apply(context);
             }
-
-            console.log("request is ending.")
+            
         }).then(()=>{
             var _this = arguments[0];
             res.status(200).json({

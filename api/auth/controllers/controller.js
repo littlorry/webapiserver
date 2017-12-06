@@ -1,5 +1,5 @@
 'use strict';
-var service = require('./service');
+var service = require('../services/service');
 
 module.exports = {
     join:{
@@ -22,13 +22,11 @@ module.exports = {
         'method': 'get',
         'actions':[
             function *(){
-                var sessionID = service.login("jiaojf@abc.com", "123456");
+                var sessionID = service.login("xxx@abc.com", "123456");
                 this.body = {code:0, data:this.text, message:'JOIN', trigger:''};
             }
         ]
-    },
-
-    demo:{}
+    }
 }
 
 

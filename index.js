@@ -7,7 +7,7 @@ var express = require('express');
 var app = express();
 
 var global = require('./config');
-var controller = require('./controller');
+var controller = require('./loader');
 
 app.use(express.static('public'));
 //var bodyParser = require('body-parser');
@@ -33,18 +33,14 @@ for(var i=0; i<list.length; i++)
 
   if(!fs.existsSync(entryPath)) continue;
 
-  console.log('[', name, ']', '正在尝试加载...');
-
-  var mod = controller.Load(name, entryPath);
-
-  var router = mod.router;
-
-  if((router || null) == null) continue;
+  var router = express.Router();
+  var mod = controller.Load(router, name, entryPath);
 
   app.use('/' + (mod.name || name), router);
 
-  console.log('[', name, ']', '模块加载成功=>(', mod.version || '1.0.0', ')', mod.description ||'');
+  console.log('[/' + (mod.name || name) + ']', '模块加载成功=>(', mod.version || '1.0.0', ')', mod.description ||'');
 }
+
 
 //启动服务器
 var server = app.listen(global.port,  ()=>{

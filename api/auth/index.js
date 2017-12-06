@@ -3,12 +3,11 @@ var fs = require('fs');
 var Promise = require("bluebird");
 
 module.exports = {
-  "name": "passport",
+  "name": "auth",
   "description": "控制系统的安全访问",
   "version": "1.0.2",
   "controllers":[
-    require('./controller'),
-    require('./controller_logout')
+    require('./controllers/controller')
   ],
   "events":{
     "onBeforeAction": function *(){
