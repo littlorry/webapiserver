@@ -14,12 +14,11 @@ module.exports = {
             "description": config.description,
             "version": config.version,
             "router": router,
-            "controller": config
+            "config": config
             };
 
+        //记录使用   
         var info= {"module":mod, "actions":[]};
-        
-        
 
         var api = new API(mod);
 
@@ -27,34 +26,45 @@ module.exports = {
         for(var i=0; i<controllers.length; i++) {
             var ctr = controllers[i] || {};
             for(var key in ctr){
-                var action = {'name': key, 'method': 'get', 'description':ctr[key].description,'actions':[]};
+
+                var action = {};
+                
+                //如果为一个函数就直接绑定
                 if(typeof(ctr[key]) == "function"){
+                    action.name = key;
+                    action.method = 'get';
+                    action.description = '无描述';
                     action.actions.push(ctr[key]);
                 }
+                //如果为一个对象就解析出内容
                 else if(typeof(ctr[key]) == "object"){
-                    action.name = ctr[key].name || action.name;
-                    action.method = ctr[key].method || action.method;
-                    action.actions = ctr[key].actions || action.actions;
+                    action.name = ctr[key].name || key;
+                    action.method = ctr[key].method || 'get';
+                    action.description = ctr[key].description || '无描述';
+                    action.actions = ctr[key].actions || [];
                 }
                 else{
                     continue;
                 }
-
-                info.actions.push(action);
+                
                 api.registAction(action);
+
+                //记录使用
+                info.actions.push(action);
             } 
             
         }
 
+        //记录使用
         router["info"] = info;
+
+
         return mod;
     }
 };
 
 function API(mod)
 {
-    var router = mod.router;
-
     //支持AOP[插件before, after]
     this.registAction = function(action){
         var name = action.name;
@@ -63,45 +73,42 @@ function API(mod)
         if(name.length == 0) return;
         if(actions.length == 0) return;
 
-
-
         var url = "/" + name;
-        if(method == "get"){
-            router.get(url, (req, res)=>{CallAction(action, req, res);});
-        }
-        else if(method == "post"){
-            router.post(url, (req, res)=>{CallAction(action, req, res);});
-        }
-        else{
-            //do nothing
-        }
+        var proc = (req, res)=>{ProcessRequest(action, req, res);}
 
-
+        switch(method){
+            case "get":
+                mod.router.get(url, proc);
+                break;
+            case "post":
+                mod.router.post(url, proc);
+                break;
+        }
     }
 
-    //这里统一处理程序
-    function CallAction(action, req, res){
+    //处理模块的请求
+    function ProcessRequest(action, req, res){
+        console.log("当前正在访问:模块/接口=>" + mod.name + "/" + action.name);
+        
         //这里使用CO来控制同步操作
         co(function *(){
             var name = action.name;
             var method = action.method;
             var actions = action.actions;
 
-            var events = mod.controller.events || {};
+            var events = mod.config.events || {};
 
-            var context = {'controller':mod.controller, 'req':req, 'res': res, 'body':{}};
+            var context = {'config':mod.config, 'req':req, 'res': res, 'body':{}};
 
             action.context = context;
             var retStatus = 0;
 
-            //before
+            //fire before events
             var event = events.onBeforeAction || null;
 
-            if(typeof(event) == "function"){
-                retStatus = yield event.apply(context) || 0;
-            }
+            if(typeof(event) == "function") retStatus = yield event.apply(context) || 0;
             
-            //call
+            //call main processing
             if(retStatus>=0){
                 for(var i=0; i<actions.length; i++){
                     retStatus = yield actions[i].apply(context) || 0;
@@ -109,14 +116,12 @@ function API(mod)
                 }
             }
 
-            //after
+            //fire after events
             event = events.onAfterAction || null;
-            if(typeof(event) == "function"){
-                yield event.apply(context);
-            }
-
+            if(typeof(event) == "function") yield event.apply(context);
         }).then(()=>{
             var _this = arguments[0];
+
             res.status(200).json({
                 "code": _this.context.body.code || 0, 
                 "data": _this.context.body.data || {}

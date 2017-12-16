@@ -23,7 +23,9 @@ module.exports = {
         'actions':[
             function *(){
                 var sessionID = service.login("xxx@abc.com", "123456");
-                this.body = {code:0, data:this.text, message:'JOIN', trigger:''};
+                //console.log(this.text)
+                //this.text = "yes"
+                this.body = {code:0, data:sessionID, message:'JOIN', trigger:''};
             }
         ]
     }
